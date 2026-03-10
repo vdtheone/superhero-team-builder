@@ -14,6 +14,11 @@ from django.conf import settings
 from django.utils.text import slugify
 from superheroes.models import Superhero
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 STATS = ["intelligence", "strength", "speed", "durability", "power", "combat"]
 
 
@@ -115,7 +120,7 @@ class Command(BaseCommand):
         parser.add_argument("--update", action="store_true", help="Update existing heroes")
 
     def handle(self, *args, **options):
-        token = settings.SUPERHERO_API_TOKEN
+        token = os.getenv("SUPERHERO_API_TOKEN")
         if not token:
             raise CommandError(
                 "SUPERHERO_API_TOKEN is not set. "
