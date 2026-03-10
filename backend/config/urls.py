@@ -22,4 +22,5 @@ urlpatterns = [
     path("api/heroes/", include("superheroes.urls")),
     path("api/users/", include("users.urls")),
     path("api/teams/", include("teams.urls")),
+    path("api/favourites/", include("favourites.urls")),
 ]
