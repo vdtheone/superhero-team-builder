@@ -3,12 +3,12 @@ from .models import Superhero
 
 @admin.register(Superhero)
 class SuperheroAdmin(admin.ModelAdmin):
-    list_display = ("name", "alignment", "publisher", "total_power", "created_at", "updated_at", "is_edited", "api_id", "slug")
+    list_display = ("name", "alignment", "publisher", "total_power", "created_at", "updated_at", "is_edited", "api_id", "slug", "image_url")
     search_fields = ("name", "full_name", "alter_egos", "publisher")
     list_filter = ("alignment", "publisher")
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("created_at", "updated_at")
-
+    ordering = ("name",)
     fieldsets = (
     ("Basic Info", {
         "fields": ("name", "slug", "api_id", "alignment", "publisher")
