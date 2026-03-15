@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../services/AuthContext";
 import { useNotification } from "../services/NotificationContext";
@@ -13,19 +13,29 @@ function SuperheroDetails() {
   const { showNotification } = useNotification();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const [teams, setTeams] = useState([]);
 
   useEffect(() => {
-    api.get(`/heroes/${id}/`)
-      .then((res) => {
-        setHero(res.data);
-        setFormData(res.data);
+    setLoading(true);
+    const requests = [api.get(`/heroes/${id}/`)];
+    if (user) {
+      requests.push(api.get("/teams/").catch(() => ({ data: [] })));
+    }
+    
+    Promise.all(requests)
+      .then(([heroRes, teamsRes]) => {
+        setHero(heroRes.data);
+        setFormData(heroRes.data);
+        if (teamsRes) {
+          setTeams(teamsRes.data.filter(t => t.members.some(m => m.superhero === parseInt(id, 10) || m.superhero_details?.id === parseInt(id, 10))));
+        }
         setLoading(false);
       })
       .catch((err) => {
         console.error(err);
         setLoading(false);
       });
-  }, [id]);
+  }, [id, user]);
 
   const addToFavourites = () => {
     api.post("/favourites/add/", { superhero: hero.id })
@@ -142,12 +152,25 @@ function SuperheroDetails() {
                 </li>
               ))}
             </ul>
+
+            {teams.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold mb-2 border-b pb-1">Teams</h3>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {teams.map(team => (
+                    <Link key={team.id} to={`/team/${team.id}`} className="bg-indigo-100 hover:bg-indigo-200 transition-colors text-indigo-800 px-3 py-1 rounded-full text-sm font-semibold border border-indigo-200">
+                      {team.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           {hero.image_url && (
             <div className="shrink-0">
               <img 
-                src={hero.image_url} 
+                src={`https://wsrv.nl/?url=${hero.image_url}`} 
                 alt={hero.name} 
                 referrerPolicy="no-referrer"
                 className="w-full max-w-sm h-auto rounded-lg shadow-md bg-gray-200"

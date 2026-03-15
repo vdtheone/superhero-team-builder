@@ -6,6 +6,7 @@ import Teams from "./pages/Teams";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SuperheroDetails from "./pages/SuperheroDetails";
+import TeamDetails from "./pages/TeamDetails";
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
 import { AuthProvider } from "./services/AuthContext";
@@ -26,6 +27,7 @@ function App() {
             <Route element={<PrivateRoute />}>
               <Route path="/favourites" element={<Favourites />} />
               <Route path="/teams" element={<Teams />} />
+              <Route path="/team/:id" element={<TeamDetails />} />
             </Route>
           </Routes>
         </AuthProvider>

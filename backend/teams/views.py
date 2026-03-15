@@ -1,7 +1,7 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Team
+from .models import Team, TeamMember
 from .serializers import TeamSerializer, CompareStoredTeamsSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -24,7 +24,7 @@ class TeamListCreateView(generics.ListCreateAPIView):
         serializer.save(created_by=self.request.user)
 
 
-class TeamDetailView(generics.RetrieveAPIView):
+class TeamDetailView(generics.RetrieveUpdateAPIView):
 
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
@@ -33,6 +33,12 @@ class TeamDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return self.queryset.filter(created_by=self.request.user)
 
+    def perform_update(self, serializer):
+        team = serializer.save()
+        if 'member_ids' in self.request.data:
+            team.members.all().delete()
+            for hero_id in self.request.data['member_ids']:
+                TeamMember.objects.create(team=team, superhero_id=hero_id)
 
 class TeamDeleteView(generics.DestroyAPIView):
     queryset = Team.objects.all()

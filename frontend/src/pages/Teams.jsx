@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useNotification } from "../services/NotificationContext";
+import { Link } from "react-router-dom";
 
 // --- Icons (Simple SVGs) ---
 const Icons = {
@@ -35,6 +36,7 @@ function Teams() {
   const [teamSize, setTeamSize] = useState(6);
   const [recommendation, setRecommendation] = useState(null);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [activeTab, setActiveTab] = useState("recommendations"); // 'recommendations', 'favourites', 'search'
 
   // Search & Fav State
   const [search, setSearch] = useState("");
@@ -252,13 +254,22 @@ function Teams() {
     return !!team.find(h => h.id === heroId);
   };
 
+  const isHeroFavorite = (heroId) => {
+    return favourites.some(h => h.id === heroId);
+  };
+
   const HeroMiniCard = ({ hero }) => (
     <div
       onClick={() => addToActiveTeam(hero)}
       className="group relative cursor-pointer border rounded-lg p-2 hover:border-blue-400 hover:shadow-md transition-all bg-gray-50 flex items-center gap-3"
     >
+      {isHeroFavorite(hero.id) && activeTab !== "favourites" && (
+        <div className="absolute -top-1.5 -left-1.5 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm z-10" title="Favourite Hero">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+      )}
       {hero.image_url ? (
-        <img src={hero.image_url} alt={hero.name} referrerPolicy="no-referrer" className="w-10 h-10 rounded object-cover bg-gray-200 shrink-0" />
+        <img src={`https://wsrv.nl/?url=${hero.image_url}`} alt={hero.name} className="w-10 h-10 rounded object-cover bg-gray-200 shrink-0" />
       ) : (
         <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center text-gray-400 font-bold shrink-0">?</div>
       )}
@@ -328,7 +339,10 @@ function Teams() {
           {[4, 5, 6, 8].map((size) => (
             <button
               key={size}
-              onClick={() => setTeamSize(size)}
+              onClick={() => {
+                setTeamSize(size);
+                setActiveTab("recommendations");
+              }}
               className={`px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
                 teamSize === size 
                   ? "bg-blue-600 text-white border-blue-600" 
@@ -341,78 +355,111 @@ function Teams() {
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-gray-700 flex items-center gap-2">
-            <Icons.Zap /> AVAILABLE HEROES <span className="text-xs font-normal text-gray-400">(Click to add)</span>
-          </h3>
-          <div className="flex gap-4">
-            <button onClick={addAllToActiveTeam} className="text-green-600 text-sm hover:underline flex items-center gap-1 font-medium">
-              <Icons.Check /> Select All
-            </button>
-            <button onClick={generateRecommendation} className="text-blue-600 text-sm hover:underline flex items-center gap-1">
-              <Icons.Shuffle /> Refresh
-            </button>
-          </div>
+      {/* Hero Selection Tabs */}
+      <div className="bg-white rounded-xl shadow-sm border mb-8 overflow-hidden">
+        {/* Tab Headers */}
+        <div className="flex border-b bg-gray-50 flex-col sm:flex-row">
+          <button
+            onClick={() => setActiveTab("recommendations")}
+            className={`flex-1 py-3 px-4 font-bold text-sm flex justify-center items-center gap-2 transition-colors ${activeTab === 'recommendations' ? 'border-b-2 border-blue-500 text-blue-600 bg-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+          >
+            <Icons.Zap /> RECOMMENDED HEROES
+          </button>
+          <button
+            onClick={() => setActiveTab("favourites")}
+            className={`flex-1 py-3 px-4 font-bold text-sm flex justify-center items-center gap-2 transition-colors ${activeTab === 'favourites' ? 'border-b-2 border-blue-500 text-blue-600 bg-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+          >
+            <Icons.Star /> YOUR FAVOURITES {favourites.length > 0 && `(${favourites.length})`}
+          </button>
+          <button
+            onClick={() => setActiveTab("search")}
+            className={`flex-1 py-3 px-4 font-bold text-sm flex justify-center items-center gap-2 transition-colors ${activeTab === 'search' ? 'border-b-2 border-blue-500 text-blue-600 bg-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+          >
+            <Icons.Search /> SEARCH HEROES
+          </button>
         </div>
-        
-        {loadingRecs ? (
-          <div className="h-40 flex items-center justify-center text-gray-400">Loading recommendations...</div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {recommendation?.members.map((hero) => (
-              <HeroMiniCard key={hero.id} hero={hero} />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Favourites Section */}
-      {favourites.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-          <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-4">
-            <Icons.Star /> YOUR FAVOURITES <span className="text-xs font-normal text-gray-400">(Click to add)</span>
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {favourites.map((hero) => <HeroMiniCard key={hero.id} hero={hero} />)}
-          </div>
-        </div>
-      )}
+        {/* Tab Content */}
+        <div className="p-6">
+          {/* Recommendations Content */}
+          {activeTab === "recommendations" && (
+            <div className="animate-fade-in">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-xs font-normal text-gray-400">Click a hero to add to the active team</span>
+                <div className="flex gap-4">
+                  <button onClick={addAllToActiveTeam} className="text-green-600 text-sm hover:underline flex items-center gap-1 font-medium">
+                    <Icons.Check /> Select All
+                  </button>
+                  <button onClick={generateRecommendation} className="text-blue-600 text-sm hover:underline flex items-center gap-1">
+                    <Icons.Shuffle /> Refresh
+                  </button>
+                </div>
+              </div>
+              {loadingRecs ? (
+                <div className="h-32 flex items-center justify-center text-gray-400">Loading recommendations...</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {recommendation?.members.map((hero) => <HeroMiniCard key={hero.id} hero={hero} />)}
+                </div>
+              )}
+            </div>
+          )}
 
-      {/* Search Heroes Section */}
-      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-          <h3 className="font-bold text-gray-700 flex items-center gap-2">
-            <Icons.Search /> FIND HEROES <span className="text-xs font-normal text-gray-400">(Click to add)</span>
-          </h3>
-          <div className="flex gap-2 w-full md:w-auto">
-            <input 
-              type="text" placeholder="Search by name..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 w-full sm:w-48 text-sm"
-            />
-            <select 
-              value={ordering} onChange={(e) => setOrdering(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-white text-sm"
-            >
-              <option value="name">Name (A-Z)</option>
-              <option value="-name">Name (Z-A)</option>
-              <option value="-intelligence">Intelligence</option>
-              <option value="-strength">Strength</option>
-              <option value="-speed">Speed</option>
-              <option value="-power">Power</option>
-              <option value="-combat">Combat</option>
-              <option value="-durability">Durability</option>
-            </select>
-          </div>
+          {/* Favourites Content */}
+          {activeTab === "favourites" && (
+            <div className="animate-fade-in">
+              <div className="mb-4">
+                <span className="text-xs font-normal text-gray-400">Click a hero to add to the active team</span>
+              </div>
+              {loadingFavs ? (
+                <div className="h-32 flex items-center justify-center text-gray-400">Loading favourites...</div>
+              ) : favourites.length === 0 ? (
+                <div className="h-32 flex items-center justify-center text-gray-400 italic">You haven't added any favourites yet.</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {favourites.map((hero) => <HeroMiniCard key={hero.id} hero={hero} />)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Search Content */}
+          {activeTab === "search" && (
+            <div className="animate-fade-in">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                <span className="text-xs font-normal text-gray-400 w-full md:w-auto text-center md:text-left">Click a hero to add to the active team</span>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <input 
+                    type="text" placeholder="Search by name..." value={search} onChange={(e) => setSearch(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 w-full sm:w-48 text-sm"
+                  />
+                  <select 
+                    value={ordering} onChange={(e) => setOrdering(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-white text-sm"
+                  >
+                    <option value="name">Name (A-Z)</option>
+                    <option value="-name">Name (Z-A)</option>
+                    <option value="-intelligence">Intelligence</option>
+                    <option value="-strength">Strength</option>
+                    <option value="-speed">Speed</option>
+                    <option value="-power">Power</option>
+                    <option value="-combat">Combat</option>
+                    <option value="-durability">Durability</option>
+                  </select>
+                </div>
+              </div>
+              {searchingHeroes ? (
+                <div className="h-32 flex items-center justify-center text-gray-400 text-sm">Searching...</div>
+              ) : searchResults.length === 0 ? (
+                <div className="h-32 flex items-center justify-center text-gray-400 italic">No heroes found matching your search.</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {searchResults.map((hero) => <HeroMiniCard key={hero.id} hero={hero} />)}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        {searchingHeroes ? (
-          <div className="h-16 flex items-center justify-center text-gray-400 text-sm">Searching...</div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {searchResults.map((hero) => <HeroMiniCard key={hero.id} hero={hero} />)}
-          </div>
-        )}
       </div>
 
       {/* Team Builder Panels */}
@@ -451,7 +498,7 @@ function Teams() {
                   <div key={hero.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm border">
                     <div className="flex items-center gap-3 overflow-hidden">
                       {hero.image_url ? (
-                        <img src={hero.image_url} alt={hero.name} referrerPolicy="no-referrer" className="w-10 h-10 rounded-full object-cover bg-gray-200 shrink-0" />
+                        <img src={`https://wsrv.nl/?url=${hero.image_url}`} alt={hero.name} referrerPolicy="no-referrer" className="w-10 h-10 rounded-full object-cover bg-gray-200 shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">?</div>
                       )}
@@ -590,7 +637,9 @@ function Teams() {
             {savedTeams.map((team) => (
               <div key={team.id} className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-lg">{team.name}</h3>
+                  <Link to={`/team/${team.id}`} className="font-bold text-lg hover:text-blue-600 hover:underline">
+                    {team.name}
+                  </Link>
                   <button onClick={() => handleDeleteSavedTeam(team.id)} className="text-gray-300 hover:text-red-500">
                     <Icons.Trash2 />
                   </button>
@@ -600,7 +649,7 @@ function Teams() {
                   {team.members.slice(0, 5).map(m => (
                     <img 
                       key={m.id} 
-                      src={m.superhero_details.image_url} 
+                      src={`https://wsrv.nl/?url=${m.superhero_details.image_url}`} 
                       alt={m.superhero_name}
                       referrerPolicy="no-referrer"
                       className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 object-cover" 

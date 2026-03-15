@@ -11,7 +11,7 @@ class SuperheroAdmin(admin.ModelAdmin):
     ordering = ("name",)
     fieldsets = (
     ("Basic Info", {
-        "fields": ("name", "slug", "api_id", "alignment", "publisher")
+        "fields": ("name", "slug", "api_id", "alignment", "publisher", "image_url")
     }),
     ("Power Stats", {
         "fields": ("intelligence", "strength", "speed", "durability", "power", "combat")
